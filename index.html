@@ -428,41 +428,91 @@ function drawCollectibles(){
   });
 }
 
+// ── PLUSHIE FIGURE ──
+function drawPlushie(cx,cy,bob,skinColor,clothColor,glowColor,nameTag,nameColor,faceEmoji,scale){
+  const s=scale||1;
+  const H=TILE*1.1*s; // total height
+  const headR=TILE*0.22*s;
+  const bodyW=TILE*0.22*s;
+  const bodyH=TILE*0.18*s;
+  const legW=TILE*0.09*s;
+  const legH=TILE*0.14*s;
+  const armW=TILE*0.08*s;
+  const armH=TILE*0.13*s;
+  const by=cy+bob;
+  // top of figure
+  const top=by-headR-bodyH-legH;
+
+  ctx.save();
+  ctx.shadowColor=glowColor;ctx.shadowBlur=20;
+
+  // legs
+  ctx.fillStyle=clothColor;
+  ctx.beginPath();ctx.roundRect(cx-bodyW*0.5+1,top+headR*2+bodyH,legW,legH,legW/2);ctx.fill();
+  ctx.beginPath();ctx.roundRect(cx+bodyW*0.5-legW-1,top+headR*2+bodyH,legW,legH,legW/2);ctx.fill();
+
+  // body
+  ctx.fillStyle=clothColor;
+  ctx.beginPath();ctx.roundRect(cx-bodyW*0.55,top+headR*1.7,bodyW*1.1,bodyH*1.1,bodyW*0.35);ctx.fill();
+
+  // arms
+  ctx.fillStyle=skinColor;
+  ctx.beginPath();ctx.roundRect(cx-bodyW*0.65-armW,top+headR*1.75,armW,armH,armW/2);ctx.fill();
+  ctx.beginPath();ctx.roundRect(cx+bodyW*0.65,top+headR*1.75,armW,armH,armW/2);ctx.fill();
+
+  // head — big and round (plushie style)
+  ctx.fillStyle=skinColor;
+  ctx.beginPath();ctx.arc(cx,top+headR,headR,0,Math.PI*2);ctx.fill();
+
+  // cheeks
+  ctx.fillStyle='rgba(255,150,150,0.35)';
+  ctx.beginPath();ctx.ellipse(cx-headR*0.52,top+headR*1.1,headR*0.28,headR*0.18,0,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.ellipse(cx+headR*0.52,top+headR*1.1,headR*0.28,headR*0.18,0,0,Math.PI*2);ctx.fill();
+
+  // eyes
+  ctx.fillStyle='#333';
+  ctx.beginPath();ctx.ellipse(cx-headR*0.32,top+headR*0.85,headR*0.1,headR*0.13,0,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.ellipse(cx+headR*0.32,top+headR*0.85,headR*0.1,headR*0.13,0,0,Math.PI*2);ctx.fill();
+  // eye shine
+  ctx.fillStyle='#fff';
+  ctx.beginPath();ctx.arc(cx-headR*0.28,top+headR*0.78,headR*0.04,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.arc(cx+headR*0.36,top+headR*0.78,headR*0.04,0,Math.PI*2);ctx.fill();
+  // smile
+  ctx.strokeStyle='#555';ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.arc(cx,top+headR*1.05,headR*0.2,0.2,Math.PI-0.2);ctx.stroke();
+
+  // face emoji on shirt
+  ctx.shadowBlur=0;
+  ctx.font=`${TILE*0.16*s}px serif`;ctx.textAlign='center';
+  ctx.fillText(faceEmoji||'',cx,top+headR*2+bodyH*0.7);
+
+  ctx.restore();
+
+  // soft shadow under feet
+  ctx.save();ctx.globalAlpha=0.12;
+  ctx.fillStyle='#000';ctx.beginPath();ctx.ellipse(cx,top+headR*2+bodyH+legH+2,legW*1.8,4,0,0,Math.PI*2);ctx.fill();
+  ctx.restore();
+
+  // name tag
+  ctx.save();
+  ctx.font=`bold ${bigText?11:8}px monospace`;ctx.textAlign='center';
+  ctx.shadowColor=glowColor;ctx.shadowBlur=10;
+  ctx.fillStyle='rgba(255,255,255,0.93)';
+  const tw=ctx.measureText(nameTag).width+14;
+  ctx.beginPath();ctx.roundRect(cx-tw/2,top-20,tw,16,8);ctx.fill();
+  ctx.shadowBlur=0;ctx.fillStyle=nameColor||'#aa88cc';
+  ctx.fillText(nameTag,cx,top-7);
+  ctx.restore();
+  ctx.textAlign='left';
+}
+
 // ── NPCS ──
 function drawNPCs(){
   NPCS.forEach(npc=>{
     const sx=npc.x-camX,sy=npc.y-camY;
     if(sx<-TILE*2||sx>canvas.width+TILE*2)return;
     const bob=Math.sin(ticks*0.05+npc.x)*3;
-    const pulse=Math.sin(ticks*0.04+npc.x*0.01)*0.08+0.92;
-    // soft shadow
-    ctx.save();ctx.globalAlpha=0.12;
-    ctx.fillStyle='#000';ctx.beginPath();ctx.ellipse(sx,sy+TILE*0.38,TILE*0.32,TILE*0.1,0,0,Math.PI*2);ctx.fill();
-    ctx.restore();
-    // glowing puffy body
-    ctx.save();
-    ctx.shadowColor=npc.color;ctx.shadowBlur=22;
-    ctx.fillStyle=npc.color;
-    ctx.beginPath();ctx.arc(sx,sy+bob,TILE*0.38*pulse,0,Math.PI*2);ctx.fill();
-    ctx.restore();
-    // white rim
-    ctx.save();ctx.strokeStyle='rgba(255,255,255,0.7)';ctx.lineWidth=2.5;
-    ctx.beginPath();ctx.arc(sx,sy+bob,TILE*0.38*pulse,0,Math.PI*2);ctx.stroke();
-    ctx.restore();
-    // emoji
-    ctx.save();ctx.shadowColor='rgba(255,255,255,0.6)';ctx.shadowBlur=8;
-    ctx.font=`${TILE*0.5}px serif`;ctx.textAlign='center';ctx.fillText(npc.emoji,sx,sy+TILE*0.18+bob);
-    ctx.restore();
-    // puffy name tag
-    ctx.save();
-    ctx.shadowColor='rgba(255,200,150,0.4)';ctx.shadowBlur=10;
-    ctx.fillStyle='rgba(255,255,255,0.92)';
-    ctx.font=`bold ${bigText?11:8}px monospace`;
-    const tw=ctx.measureText(npc.name).width+14;
-    ctx.beginPath();ctx.roundRect(sx-tw/2,sy-TILE*0.66+bob,tw,16,8);ctx.fill();
-    ctx.shadowBlur=0;ctx.fillStyle='#aa88aa';ctx.fillText(npc.name,sx,sy-TILE*0.52+bob);
-    ctx.restore();
-    ctx.textAlign='left';
+    drawPlushie(sx,sy,bob,npc.color,'#cc88ee',npc.color,npc.name,'#aa88aa',npc.emoji,0.85);
   });
 }
 
@@ -471,39 +521,10 @@ function drawPlayer(){
   const sx=canvas.width/2,sy=canvas.height/2;
   const moving=player.vx||player.vy;
   const bob=Math.sin(ticks*0.15)*(moving?3:1);
-  const pulse=Math.sin(ticks*0.08)*0.06+0.94;
-  // soft shadow
-  ctx.save();ctx.globalAlpha=0.15;
-  ctx.fillStyle='#000';ctx.beginPath();ctx.ellipse(sx,sy+TILE*0.4,TILE*0.3,TILE*0.09,0,0,Math.PI*2);ctx.fill();
-  ctx.restore();
-  // glowing puffy body
-  ctx.save();
-  ctx.shadowColor='#ffccee';ctx.shadowBlur=28;
-  ctx.fillStyle='rgba(255,235,210,0.97)';
-  ctx.beginPath();ctx.arc(sx,sy+bob,TILE*0.36*pulse,0,Math.PI*2);ctx.fill();
-  ctx.restore();
-  // sparkle trail when moving
   if(moving&&ticks%3===0){
     sparkles.push({wx:player.x+(Math.random()-0.5)*8,wy:player.y+(Math.random()-0.5)*8,life:20,maxLife:20,size:1.5,color:'#ffccee'});
   }
-  // white rim
-  ctx.save();ctx.strokeStyle='rgba(255,255,255,0.8)';ctx.lineWidth=2.5;
-  ctx.beginPath();ctx.arc(sx,sy+bob,TILE*0.36*pulse,0,Math.PI*2);ctx.stroke();
-  ctx.restore();
-  // avatar emoji
-  ctx.save();ctx.shadowColor='rgba(255,200,255,0.8)';ctx.shadowBlur=10;
-  ctx.font=`${TILE*0.5}px serif`;ctx.textAlign='center';ctx.fillText(playerAvatar,sx,sy+TILE*0.18+bob);
-  ctx.restore();
-  // puffy name tag
-  ctx.save();
-  ctx.shadowColor='rgba(255,180,220,0.5)';ctx.shadowBlur=12;
-  ctx.fillStyle='rgba(255,255,255,0.93)';
-  ctx.font=`bold ${bigText?12:9}px monospace`;
-  const tw=ctx.measureText(playerName).width+16;
-  ctx.beginPath();ctx.roundRect(sx-tw/2,sy-TILE*0.68+bob,tw,18,9);ctx.fill();
-  ctx.shadowBlur=0;ctx.fillStyle='#aa88cc';ctx.fillText(playerName,sx,sy-TILE*0.52+bob);
-  ctx.restore();
-  ctx.textAlign='left';
+  drawPlushie(sx,sy,bob,'#ffe0c8','#ff88bb','#ffccee',playerName,'#aa88cc',playerAvatar,1);
 }
 
 // ── MINIMAP ──
