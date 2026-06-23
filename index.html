@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>FluffLand 🌸</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:#87ceeb;overflow:hidden;font-family:'Segoe UI',Arial,sans-serif;touch-action:none;}
+canvas{display:block;}
+#ui{position:fixed;top:0;left:0;right:0;bottom:0;pointer-events:none;z-index:10;}
+
+/* HUD */
+#hud{position:absolute;top:12px;left:12px;right:12px;display:flex;justify-content:space-between;align-items:flex-start;gap:8px;}
+#player-info{background:rgba(255,255,255,0.85);border-radius:20px;padding:10px 16px;font-size:0.65rem;letter-spacing:1px;color:#555;backdrop-filter:blur(8px);}
+#coins-hud{background:rgba(255,255,255,0.85);border-radius:20px;padding:10px 16px;font-size:0.65rem;letter-spacing:1px;color:#e8a000;backdrop-filter:blur(8px);}
+#time-hud{background:rgba(255,255,255,0.85);border-radius:20px;padding:10px 16px;font-size:0.65rem;letter-spacing:1px;color:#888;backdrop-filter:blur(8px);}
+
+/* DIALOG */
+#dialog{position:absolute;bottom:80px;left:50%;transform:translateX(-50%);width:min(500px,90vw);background:rgba(255,255,255,0.95);border-radius:20px;padding:20px 24px;pointer-events:all;display:none;backdrop-filter:blur(12px);border:2px solid rgba(255,200,100,0.4);}
+#dialog-name{font-size:0.8rem;font-weight:700;color:#e8a000;margin-bottom:6px;}
+#dialog-text{font-size:0.75rem;color:#555;line-height:1.7;margin-bottom:14px;}
+#dialog-btn{padding:10px 28px;background:linear-gradient(135deg,#ffcc44,#ff8866);border:none;border-radius:50px;font-size:0.7rem;font-weight:700;cursor:pointer;color:#fff;pointer-events:all;}
+
+/* INVENTORY */
+#inventory{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);display:flex;gap:8px;}
+.inv-slot{width:52px;height:52px;background:rgba(255,255,255,0.85);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:1.4rem;border:2px solid rgba(255,200,100,0.3);backdrop-filter:blur(8px);}
+.inv-slot.active{border-color:#ffaa00;background:rgba(255,200,100,0.3);}
+
+/* MINIMAP */
+#minimap-wrap{position:absolute;top:70px;right:12px;background:rgba(255,255,255,0.8);border-radius:14px;padding:6px;backdrop-filter:blur(8px);}
+
+/* CONTROLS */
+#dpad{position:absolute;bottom:80px;left:16px;pointer-events:all;display:none;}
+.dpad-btn{position:absolute;width:44px;height:44px;background:rgba(255,255,255,0.8);border-radius:12px;border:none;font-size:1.2rem;cursor:pointer;display:flex;align-items:center;justify-content:center;pointer-events:all;-webkit-tap-highlight-color:transparent;}
+
+/* TITLE */
+#title-screen{position:fixed;inset:0;z-index:100;background:linear-gradient(160deg,#ffe4f0,#e8f4ff,#fffde0);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px;}
+#title-screen h1{font-size:clamp(3rem,14vw,7rem);font-weight:900;background:linear-gradient(135deg,#ff88bb,#ffcc44,#88ddff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:4px;letter-spacing:4px;}
+#title-screen .sub{font-size:0.7rem;letter-spacing:6px;color:#aaa;margin-bottom:40px;}
+#username-in{background:rgba(255,255,255,0.8);border:2px solid rgba(255,180,100,0.4);border-radius:50px;padding:14px 28px;font-size:0.85rem;letter-spacing:2px;outline:none;text-align:center;width:min(280px,80vw);margin-bottom:16px;color:#555;font-family:'Segoe UI',Arial,sans-serif;pointer-events:all;}
+.pick-title{font-size:0.6rem;letter-spacing:4px;color:#bbb;margin-bottom:12px;}
+#avatar-pick{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-bottom:28px;}
+.av-opt{width:64px;height:64px;border-radius:50%;border:3px solid transparent;cursor:pointer;font-size:2rem;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.7);transition:all 0.2s;pointer-events:all;}
+.av-opt.selected{border-color:#ffaa00;background:rgba(255,200,100,0.3);transform:scale(1.1);}
+.play-btn{padding:16px 52px;background:linear-gradient(135deg,#ff88bb,#ffcc44);border:none;border-radius:50px;font-size:0.85rem;font-weight:700;cursor:pointer;color:#fff;letter-spacing:3px;pointer-events:all;transition:transform 0.2s;}
+.play-btn:hover{transform:scale(1.05);}
+.credit{font-size:0.45rem;letter-spacing:3px;color:#ccc;margin-top:20px;}
+
+/* ACCESSIBILITY */
+#access-bar{position:absolute;top:70px;left:12px;display:flex;flex-direction:column;gap:6px;}
+.access-btn{background:rgba(255,255,255,0.85);border:none;border-radius:12px;padding:8px 12px;font-size:0.6rem;cursor:pointer;pointer-events:all;color:#555;backdrop-filter:blur(8px);text-align:left;}
+
+/* NOTIFICATION */
+#notif{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(255,255,255,0.95);border-radius:20px;padding:16px 28px;font-size:0.75rem;color:#555;display:none;text-align:center;border:2px solid rgba(255,200,100,0.4);}
+</style>
+</head>
+<body>
+
+<div id="title-screen">
+  <h1>🌸 FluffLand</h1>
+  <div class="sub">A COZY WORLD FOR EVERYONE</div>
+  <input id="username-in" type="text" placeholder="Your username" maxlength="14">
+  <div class="pick-title">PICK YOUR CHARACTER</div>
+  <div id="avatar-pick">
+    <div class="av-opt selected" data-av="🐱" onclick="pickAv(this)">🐱</div>
+    <div class="av-opt" data-av="🐸" onclick="pickAv(this)">🐸</div>
+    <div class="av-opt" data-av="🦊" onclick="pickAv(this)">🦊</div>
+    <div class="av-opt" data-av="🐼" onclick="pickAv(this)">🐼</div>
+    <div class="av-opt" data-av="🐨" onclick="pickAv(this)">🐨</div>
+    <div class="av-opt" data-av="🦋" onclick="pickAv(this)">🦋</div>
+    <div class="av-opt" data-av="🐙" onclick="pickAv(this)">🐙</div>
+    <div class="av-opt" data-av="🌸" onclick="pickAv(this)">🌸</div>
+  </div>
+  <button class="play-btn" onclick="startGame()">🌸 ENTER FLUFFLAND</button>
+  <div class="credit">BY PUFFBLAZE WORLD STUDIOS · OLIVER · AGE 10</div>
+</div>
+
+<canvas id="c"></canvas>
+
+<div id="ui">
+  <div id="hud">
+    <div id="player-info">🌸 <span id="hud-name">-</span></div>
+    <div id="time-hud" id="time-hud">🌤️ <span id="hud-time">MORNING</span></div>
+    <div id="coins-hud">🪙 <span id="hud-coins">0</span></div>
+  </div>
+
+  <div id="access-bar">
+    <button class="access-btn" onclick="toggleBigText()">🔤 BIG TEXT</button>
+    <button class="access-btn" onclick="toggleSlowMode()">🐢 SLOW MODE</button>
+    <button class="access-btn" onclick="speak(lastDialog)">🔊 READ ALOUD</button>
+  </div>
+
+  <div id="minimap-wrap">
+    <canvas id="minimap" width="90" height="90"></canvas>
+  </div>
+
+  <div id="dialog">
+    <div id="dialog-name"></div>
+    <div id="dialog-text"></div>
+    <button id="dialog-btn" onclick="closeDialog()">OK 🌸</button>
+  </div>
+
+  <div id="inventory">
+    <div class="inv-slot active" id="slot0">🌸</div>
+    <div class="inv-slot" id="slot1"></div>
+    <div class="inv-slot" id="slot2"></div>
+    <div class="inv-slot" id="slot3"></div>
+    <div class="inv-slot" id="slot4"></div>
+  </div>
+
+  <div id="dpad">
+    <button class="dpad-btn" style="top:0;left:44px;" ontouchstart="keys['ArrowUp']=true" ontouchend="keys['ArrowUp']=false">↑</button>
+    <button class="dpad-btn" style="top:44px;left:0;" ontouchstart="keys['ArrowLeft']=true" ontouchend="keys['ArrowLeft']=false">←</button>
+    <button class="dpad-btn" style="top:44px;left:44px;" ontouchstart="keys['ArrowDown']=true" ontouchend="keys['ArrowDown']=false">↓</button>
+    <button class="dpad-btn" style="top:44px;left:88px;" ontouchstart="keys['ArrowRight']=true" ontouchend="keys['ArrowRight']=false">→</button>
+  </div>
+
+  <div id="notif"></div>
+</div>
+
+<script>
+const canvas=document.getElementById('c');
+const ctx=canvas.getContext('2d');
+
+// ── STATE ──
+let playerName='FRIEND';
+let playerAvatar='🐱';
+let coins=0;
+let bigText=false;
+let slowMode=false;
+let lastDialog='';
+let gameStarted=false;
+let ticks=0;
+let dayTime=0; // 0-1 full day cycle
+let inventory=['🌸','','','',''];
+
+// ── WORLD ──
+const TILE=48;
+const COLS=30;
+const world=[];
+// tile types: 0=grass, 1=water, 2=path, 3=flower, 4=tree, 5=house, 6=shop, 7=pond, 8=mushroom, 9=rock
+const LAYOUT=[
+  [4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4],
+  [4,0,0,0,0,0,0,0,3,0,0,0,0,5,0,0,0,0,0,0,0,0,3,0,0,0,0,0,0,4],
+  [4,0,3,0,0,0,3,0,0,0,0,3,0,0,0,0,3,0,0,8,0,0,0,0,3,0,0,0,0,4],
+  [4,0,0,0,5,0,0,0,2,2,2,2,2,2,2,0,0,0,0,0,0,5,0,0,0,0,0,3,0,4],
+  [4,0,0,0,0,0,3,0,2,0,0,0,0,0,2,0,3,0,0,0,3,0,0,0,0,0,0,0,0,4],
+  [4,3,0,0,0,0,0,0,2,0,6,0,0,0,2,0,0,0,5,0,0,0,0,3,0,0,0,0,3,4],
+  [4,0,0,5,0,0,0,0,2,0,0,0,7,0,2,0,0,0,0,0,0,0,0,0,0,5,0,0,0,4],
+  [4,0,3,0,0,0,0,0,2,0,0,7,7,0,2,0,3,0,0,0,3,0,0,0,0,0,0,0,0,4],
+  [4,0,0,0,0,3,0,0,2,0,0,0,0,0,2,0,0,0,0,0,0,0,3,0,0,0,0,3,0,4],
+  [4,0,0,8,0,0,0,0,2,2,2,2,2,2,2,0,0,0,0,8,0,0,0,0,0,0,0,0,0,4],
+  [4,3,0,0,0,0,5,0,0,0,0,0,0,0,0,0,0,3,0,0,0,0,5,0,0,0,3,0,0,4],
+  [4,0,0,0,0,3,0,0,3,0,0,0,3,0,0,0,3,0,0,0,0,0,0,0,3,0,0,0,0,4],
+  [4,0,5,0,0,0,0,0,0,0,3,0,0,0,0,5,0,0,0,0,0,3,0,0,0,0,0,0,3,4],
+  [4,0,0,0,3,0,0,0,0,0,0,0,0,0,0,0,0,0,3,0,0,0,0,0,0,0,5,0,0,4],
+  [4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4],
+];
+// Fill remaining rows with grass
+for(let r=0;r<COLS;r++){
+  world[r]=[];
+  for(let c=0;c<COLS;c++){
+    if(r<LAYOUT.length&&c<LAYOUT[r].length)world[r][c]=LAYOUT[r][c];
+    else world[r][c]=r===0||r===COLS-1||c===0||c===COLS-1?4:Math.random()<0.05?3:0;
+  }
+}
+
+// ── PLAYER ──
+const player={x:7*TILE,y:8*TILE,vx:0,vy:0,speed:2.5,facing:'down',frame:0};
+
+// ── NPCS ──
+const NPCS=[
+  {x:13*TILE,y:1*TILE,emoji:'🐰',name:'LUNA',color:'#ffccee',msgs:['Welcome to FluffLand! 🌸','This world was made for EVERYONE!','You can pick flowers and earn coins!','Have you met my friend Boba near the shop?'],mi:0,wx:13*TILE,wy:1*TILE},
+  {x:10*TILE,y:5*TILE,emoji:'🐻',name:'BOBA',color:'#ffeedd',msgs:['Hey! I run the cozy shop! 🍵','Collect flowers and trade them for coins!','Everyone is welcome here, always.','Want to hear something cool? This game was made by a 10 year old!'],mi:0,wx:10*TILE,wy:5*TILE},
+  {x:5*TILE,y:4*TILE,emoji:'🦜',name:'PICO',color:'#ddffee',msgs:['HELLO HELLO! 🌈','The mushrooms glow at night!','Try walking to the pond — it is peaceful.','EVERYONE BELONGS HERE!'],mi:0,wx:5*TILE,wy:4*TILE},
+  {x:21*TILE,y:3*TILE,emoji:'🐢',name:'SHELLY',color:'#ddffdd',msgs:['Take your time. No rush here. 🐢','Slow mode is for YOU — use it!','I believe every kid deserves a cozy world.','The flowers near the pond are magical.'],mi:0,wx:21*TILE,wy:3*TILE},
+  {x:25*TILE,y:6*TILE,emoji:'🌻',name:'SUNNY',color:'#ffffcc',msgs:['Good morning! Or evening! Or whenever! ☀️','The sky changes color as time passes!','FluffLand never judges anyone.','You are wonderful just as you are.'],mi:0,wx:25*TILE,wy:6*TILE},
+];
+
+// ── COLLECTIBLES ──
+let collectibles=[];
+function spawnCollectibles(){
+  collectibles=[];
+  for(let r=1;r<14;r++){
+    for(let c=1;c<29;c++){
+      if(world[r][c]===3&&Math.random()<0.7)collectibles.push({x:c*TILE+TILE/2,y:r*TILE+TILE/2,type:'🌸',val:1,alive:true});
+      if(world[r][c]===8&&Math.random()<0.9)collectibles.push({x:c*TILE+TILE/2,y:r*TILE+TILE/2,type:'🍄',val:3,alive:true});
+    }
+  }
+}
+spawnCollectibles();
+
+// ── INPUT ──
+const keys={};
+document.addEventListener('keydown',e=>{keys[e.code]=true;if(e.code==='Space')interact();});
+document.addEventListener('keyup',e=>{keys[e.code]=false;});
+
+// ── CAMERA ──
+let camX=0,camY=0;
+
+// ── TILE COLORS ──
+function tileColor(t,dx,dy){
+  const shade=((dx+dy)%2===0)?0:8;
+  switch(t){
+    case 0:return`rgb(${120+shade},${190+shade},${80+shade})`;
+    case 1:return`#4499dd`;
+    case 2:return`#e8d4a0`;
+    case 3:return`rgb(${120+shade},${190+shade},${80+shade})`;
+    case 4:return`rgb(${40+shade},${100+shade},${40+shade})`;
+    case 5:return`#cc8866`;
+    case 6:return`#ffcc88`;
+    case 7:return`#66aaff`;
+    case 8:return`rgb(${120+shade},${190+shade},${80+shade})`;
+    case 9:return`#aaaaaa`;
+    default:return`#88cc44`;
+  }
+}
+
+function solidTile(t){return t===1||t===4||t===9;}
+
+function tileAt(px,py){
+  const c=Math.floor(px/TILE),r=Math.floor(py/TILE);
+  if(r<0||r>=COLS||c<0||c>=COLS)return 4;
+  return world[r][c];
+}
+
+// ── SKY ──
+function drawSky(){
+  const W=canvas.width,H=canvas.height;
+  const t=dayTime;
+  let sky1,sky2;
+  if(t<0.25){sky1='#1a0033';sky2='#0d0022';}
+  else if(t<0.35){sky1='#ff6633';sky2='#ffaa44';}
+  else if(t<0.7){sky1='#87ceeb';sky2='#b0e0ff';}
+  else if(t<0.8){sky1='#ff8844';sky2='#ffcc44';}
+  else{sky1='#1a0033';sky2='#0d0022';}
+  const g=ctx.createLinearGradient(0,0,0,H*0.4);
+  g.addColorStop(0,sky1);g.addColorStop(1,sky2);
+  ctx.fillStyle=g;ctx.fillRect(0,0,W,H*0.4);
+  // stars at night
+  if(t<0.3||t>0.75){
+    ctx.fillStyle='rgba(255,255,255,0.8)';
+    for(let i=0;i<40;i++){
+      const sx=(i*173%W);const sy=(i*97%H*0.35);
+      const twinkle=Math.sin(ticks*0.05+i)*0.5+0.5;
+      ctx.globalAlpha=twinkle*0.8;
+      ctx.beginPath();ctx.arc(sx,sy,1,0,Math.PI*2);ctx.fill();
+    }
+    ctx.globalAlpha=1;
+  }
+  // sun/moon
+  if(t>0.3&&t<0.75){
+    const sx=W*(t-0.3)/0.45;
+    const sy=H*0.15-Math.sin((t-0.3)/0.45*Math.PI)*H*0.12;
+    ctx.fillStyle='#ffee44';
+    ctx.beginPath();ctx.arc(sx,sy,18,0,Math.PI*2);ctx.fill();
+  } else {
+    const mt=t>0.75?(t-0.75)/0.25:t/0.3;
+    const sx=W*mt;const sy=H*0.12;
+    ctx.fillStyle='#ffffff';
+    ctx.beginPath();ctx.arc(sx,sy,12,0,Math.PI*2);ctx.fill();
+  }
+}
+
+// ── DRAW WORLD ──
+function drawWorld(){
+  const W=canvas.width,H=canvas.height;
+  const startC=Math.max(0,Math.floor(camX/TILE)-1);
+  const endC=Math.min(COLS,startC+Math.ceil(W/TILE)+2);
+  const startR=Math.max(0,Math.floor(camY/TILE)-1);
+  const endR=Math.min(COLS,startR+Math.ceil(H/TILE)+2);
+
+  for(let r=startR;r<endR;r++){
+    for(let c=startC;c<endC;c++){
+      const t=world[r][c];
+      const sx=c*TILE-camX,sy=r*TILE-camY;
+      ctx.fillStyle=tileColor(t,c,r);
+      ctx.fillRect(sx,sy,TILE,TILE);
+
+      // overlays
+      if(t===3){ctx.font=`${TILE*0.5}px serif`;ctx.fillText('🌸',sx+TILE*0.25,sy+TILE*0.7);}
+      else if(t===4){
+        // tree
+        ctx.fillStyle='#4a7c3f';ctx.beginPath();ctx.arc(sx+TILE/2,sy+TILE*0.45,TILE*0.38,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle='#5a9e4f';ctx.beginPath();ctx.arc(sx+TILE/2,sy+TILE*0.3,TILE*0.28,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle='#5a3a1a';ctx.fillRect(sx+TILE*0.42,sy+TILE*0.7,TILE*0.16,TILE*0.3);
+      }
+      else if(t===5){
+        // house
+        ctx.fillStyle='#ffeecc';ctx.fillRect(sx+4,sy+TILE*0.4,TILE-8,TILE*0.6);
+        ctx.fillStyle='#ff8866';
+        ctx.beginPath();ctx.moveTo(sx,sy+TILE*0.42);ctx.lineTo(sx+TILE/2,sy+4);ctx.lineTo(sx+TILE,sy+TILE*0.42);ctx.closePath();ctx.fill();
+        ctx.fillStyle='#88aaff';ctx.fillRect(sx+TILE*0.35,sy+TILE*0.6,TILE*0.3,TILE*0.25);
+      }
+      else if(t===6){
+        // shop
+        ctx.fillStyle='#fff9dd';ctx.fillRect(sx+2,sy+TILE*0.35,TILE-4,TILE*0.65);
+        ctx.fillStyle='#ffaa44';ctx.fillRect(sx,sy+TILE*0.3,TILE,TILE*0.12);
+        ctx.fillStyle='#ff6644';
+        ctx.beginPath();ctx.moveTo(sx,sy+TILE*0.32);ctx.lineTo(sx+TILE/2,sy+4);ctx.lineTo(sx+TILE,sy+TILE*0.32);ctx.closePath();ctx.fill();
+        ctx.font=`${TILE*0.35}px serif`;ctx.fillText('🛍️',sx+TILE*0.2,sy+TILE*0.85);
+      }
+      else if(t===7){
+        // pond ripple
+        ctx.strokeStyle='rgba(255,255,255,0.3)';ctx.lineWidth=1;
+        ctx.beginPath();ctx.ellipse(sx+TILE/2,sy+TILE/2,TILE*0.35,TILE*0.2,0,0,Math.PI*2);ctx.stroke();
+      }
+      else if(t===8){
+        // mushroom
+        ctx.fillStyle='#cc2222';ctx.beginPath();ctx.arc(sx+TILE/2,sy+TILE*0.4,TILE*0.32,Math.PI,0);ctx.fill();
+        ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(sx+TILE*0.35,sy+TILE*0.32,TILE*0.07,0,Math.PI*2);ctx.fill();
+        ctx.beginPath();ctx.arc(sx+TILE*0.6,sy+TILE*0.35,TILE*0.05,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle='#ddbb88';ctx.fillRect(sx+TILE*0.44,sy+TILE*0.52,TILE*0.12,TILE*0.3);
+      }
+      else if(t===2){
+        // path dots
+        ctx.fillStyle='rgba(160,130,80,0.3)';
+        ctx.beginPath();ctx.arc(sx+TILE*0.3,sy+TILE*0.3,2,0,Math.PI*2);ctx.fill();
+        ctx.beginPath();ctx.arc(sx+TILE*0.7,sy+TILE*0.7,2,0,Math.PI*2);ctx.fill();
+      }
+    }
+  }
+}
+
+// ── COLLECTIBLES ──
+function drawCollectibles(){
+  collectibles.forEach(col=>{
+    if(!col.alive)return;
+    const sx=col.x-camX,sy=col.y-camY;
+    if(sx<-TILE||sx>canvas.width+TILE||sy<-TILE||sy>canvas.height+TILE)return;
+    const bob=Math.sin(ticks*0.08+col.x)*3;
+    ctx.font=`${TILE*0.5}px serif`;
+    ctx.fillText(col.type,sx-TILE*0.25,sy+bob);
+  });
+}
+
+// ── NPCS ──
+function drawNPCs(){
+  NPCS.forEach(npc=>{
+    const sx=npc.x-camX,sy=npc.y-camY;
+    if(sx<-TILE*2||sx>canvas.width+TILE*2)return;
+    const bob=Math.sin(ticks*0.05+npc.x)*2;
+    // shadow
+    ctx.fillStyle='rgba(0,0,0,0.1)';ctx.beginPath();ctx.ellipse(sx,sy+TILE*0.35,TILE*0.3,TILE*0.1,0,0,Math.PI*2);ctx.fill();
+    // body circle
+    ctx.fillStyle=npc.color;ctx.beginPath();ctx.arc(sx,sy+bob,TILE*0.38,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle='rgba(255,255,255,0.6)';ctx.lineWidth=2;ctx.stroke();
+    // emoji
+    ctx.font=`${TILE*0.5}px serif`;ctx.textAlign='center';ctx.fillText(npc.emoji,sx,sy+TILE*0.18+bob);
+    // name tag
+    ctx.fillStyle='rgba(255,255,255,0.9)';
+    const tw=ctx.measureText(npc.name).width+12;
+    ctx.fillRect(sx-tw/2-4,sy-TILE*0.6+bob,tw+8,16);
+    ctx.fillStyle='#888';ctx.font=`bold ${bigText?11:8}px monospace`;ctx.fillText(npc.name,sx,sy-TILE*0.47+bob);
+    ctx.textAlign='left';
+  });
+}
+
+// ── PLAYER DRAW ──
+function drawPlayer(){
+  const sx=canvas.width/2,sy=canvas.height/2;
+  const bob=Math.sin(ticks*0.15)*(player.vx||player.vy?2:0);
+  // shadow
+  ctx.fillStyle='rgba(0,0,0,0.15)';ctx.beginPath();ctx.ellipse(sx,sy+TILE*0.38,TILE*0.28,TILE*0.09,0,0,Math.PI*2);ctx.fill();
+  // body
+  ctx.fillStyle='rgba(255,230,200,0.95)';ctx.beginPath();ctx.arc(sx,sy+bob,TILE*0.35,0,Math.PI*2);ctx.fill();
+  ctx.strokeStyle='rgba(255,200,150,0.8)';ctx.lineWidth=2;ctx.stroke();
+  // avatar emoji
+  ctx.font=`${TILE*0.5}px serif`;ctx.textAlign='center';ctx.fillText(playerAvatar,sx,sy+TILE*0.18+bob);
+  // name
+  ctx.fillStyle='rgba(255,255,255,0.9)';
+  ctx.font=`bold ${bigText?12:9}px monospace`;
+  const tw=ctx.measureText(playerName).width+16;
+  ctx.fillRect(sx-tw/2,sy-TILE*0.65+bob,tw,18);
+  ctx.fillStyle='#666';ctx.fillText(playerName,sx,sy-TILE*0.5+bob);
+  ctx.textAlign='left';
+}
+
+// ── MINIMAP ──
+function drawMinimap(){
+  const mm=document.getElementById('minimap').getContext('2d');
+  const S=90,sc=S/COLS;
+  mm.fillStyle='#a8d8a8';mm.fillRect(0,0,S,S);
+  for(let r=0;r<COLS;r++)for(let c=0;c<COLS;c++){
+    const t=world[r][c];
+    if(t===4)mm.fillStyle='#2d6e2d';
+    else if(t===1||t===7)mm.fillStyle='#4499dd';
+    else if(t===2)mm.fillStyle='#d4b870';
+    else if(t===5||t===6)mm.fillStyle='#cc8866';
+    else continue;
+    mm.fillRect(c*sc,r*sc,sc,sc);
+  }
+  NPCS.forEach(n=>{mm.fillStyle='#ff88bb';mm.fillRect(n.x/TILE*sc-1,n.y/TILE*sc-1,3,3);});
+  mm.fillStyle='#ffcc00';mm.beginPath();mm.arc(player.x/TILE*sc,player.y/TILE*sc,3,0,Math.PI*2);mm.fill();
+}
+
+// ── INTERACT ──
+function interact(){
+  // check NPCs
+  for(let npc of NPCS){
+    if(Math.hypot(player.x-npc.x,player.y-npc.y)<TILE*1.2){
+      const msg=npc.msgs[npc.mi%npc.msgs.length];npc.mi++;
+      showDialog(npc.name,npc.emoji+' '+msg);
+      return;
+    }
+  }
+  // check collectibles
+  for(let col of collectibles){
+    if(!col.alive)continue;
+    if(Math.hypot(player.x-col.x,player.y-col.y)<TILE*0.8){
+      col.alive=false;coins+=col.val;
+      document.getElementById('hud-coins').textContent=coins;
+      showNotif(col.type+' +'+col.val+' coin'+(col.val>1?'s':'')+'!');
+      // add to inventory
+      for(let i=0;i<inventory.length;i++){if(!inventory[i]){inventory[i]=col.type;updateInventory();break;}}
+      return;
+    }
+  }
+}
+
+function showDialog(name,text){
+  lastDialog=text;
+  document.getElementById('dialog-name').textContent=name;
+  document.getElementById('dialog-text').textContent=text;
+  document.getElementById('dialog').style.display='block';
+  if(bigText){document.getElementById('dialog-text').style.fontSize='1rem';}
+}
+function closeDialog(){document.getElementById('dialog').style.display='none';}
+
+function showNotif(msg){
+  const n=document.getElementById('notif');
+  n.textContent=msg;n.style.display='block';
+  clearTimeout(n._t);n._t=setTimeout(()=>n.style.display='none',2000);
+}
+
+function updateInventory(){
+  for(let i=0;i<5;i++){
+    document.getElementById('slot'+i).textContent=inventory[i]||'';
+  }
+}
+
+// ── ACCESSIBILITY ──
+function toggleBigText(){bigText=!bigText;showNotif(bigText?'Big text ON 🔤':'Big text OFF');}
+function toggleSlowMode(){slowMode=!slowMode;player.speed=slowMode?1.2:2.5;showNotif(slowMode?'Slow mode ON 🐢':'Slow mode OFF');}
+function speak(text){if(!text||!window.speechSynthesis)return;window.speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.rate=0.85;window.speechSynthesis.speak(u);}
+
+// ── PICK AVATAR ──
+function pickAv(el){
+  document.querySelectorAll('.av-opt').forEach(e=>e.classList.remove('selected'));
+  el.classList.add('selected');
+  playerAvatar=el.dataset.av;
+}
+
+// ── UPDATE ──
+function update(){
+  if(!gameStarted)return;
+  ticks++;
+  dayTime=(dayTime+0.0003)%1;
+  const times=['NIGHT','DAWN','MORNING','AFTERNOON','EVENING','DUSK'];
+  const ti=Math.floor(dayTime*6);
+  document.getElementById('hud-time').textContent=['🌙','🌅','☀️','🌤️','🌇','🌆'][ti];
+
+  // respawn flowers slowly
+  if(ticks%300===0){
+    collectibles.forEach(c=>{if(!c.alive&&Math.random()<0.3)c.alive=true;});
+  }
+
+  // movement
+  let dx=0,dy=0;
+  if(keys['ArrowUp']||keys['KeyW'])dy-=1;
+  if(keys['ArrowDown']||keys['KeyS'])dy+=1;
+  if(keys['ArrowLeft']||keys['KeyA'])dx-=1;
+  if(keys['ArrowRight']||keys['KeyD'])dx+=1;
+  if(dx&&dy){dx*=0.707;dy*=0.707;}
+  const spd=player.speed;
+  const nx=player.x+dx*spd,ny=player.y+dy*spd;
+  if(!solidTile(tileAt(nx,player.y)))player.x=nx;
+  if(!solidTile(tileAt(player.x,ny)))player.y=ny;
+  player.x=Math.max(TILE,Math.min(TILE*(COLS-1),player.x));
+  player.y=Math.max(TILE,Math.min(TILE*(COLS-1),player.y));
+  player.vx=dx;player.vy=dy;
+
+  // camera
+  camX=player.x-canvas.width/2;camY=player.y-canvas.height/2;
+  camX=Math.max(0,Math.min(TILE*COLS-canvas.width,camX));
+  camY=Math.max(0,Math.min(TILE*COLS-canvas.height,camY));
+
+  // auto interact nearby
+  for(let col of collectibles){
+    if(!col.alive)continue;
+    if(Math.hypot(player.x-col.x,player.y-col.y)<TILE*0.55){
+      col.alive=false;coins+=col.val;
+      document.getElementById('hud-coins').textContent=coins;
+      showNotif(col.type+' +'+col.val+'!');
+      for(let i=0;i<inventory.length;i++){if(!inventory[i]){inventory[i]=col.type;updateInventory();break;}}
+    }
+  }
+
+  // NPC wander
+  NPCS.forEach((npc,i)=>{
+    if(ticks%(180+i*30)===0){
+      npc.wx=npc.x+(Math.random()-0.5)*TILE*2;
+      npc.wy=npc.y+(Math.random()-0.5)*TILE*2;
+    }
+    const ndx=npc.wx-npc.x,ndy=npc.wy-npc.y;
+    const nd=Math.hypot(ndx,ndy);
+    if(nd>2){npc.x+=ndx/nd*0.5;npc.y+=ndy/nd*0.5;}
+  });
+}
+
+// ── DRAW ──
+function draw(){
+  canvas.width=window.innerWidth;canvas.height=window.innerHeight;
+  // night overlay
+  const nightAlpha=dayTime<0.3||dayTime>0.75?0.4:0;
+  drawSky();
+  // isometric-ish: draw ground from top
+  ctx.save();
+  drawWorld();
+  drawCollectibles();
+  drawNPCs();
+  drawPlayer();
+  if(nightAlpha>0){ctx.fillStyle=`rgba(0,0,30,${nightAlpha})`;ctx.fillRect(0,0,canvas.width,canvas.height);}
+  ctx.restore();
+  drawMinimap();
+}
+
+function loop(){requestAnimationFrame(loop);update();draw();}
+
+function startGame(){
+  const name=(document.getElementById('username-in').value.trim()||'FRIEND').toUpperCase().slice(0,12);
+  playerName=name;
+  document.getElementById('hud-name').textContent=playerName;
+  document.getElementById('title-screen').style.display='none';
+  // show dpad on mobile
+  if('ontouchstart' in window)document.getElementById('dpad').style.display='block';
+  gameStarted=true;
+  loop();
+}
+</script>
+</body>
+</html>
